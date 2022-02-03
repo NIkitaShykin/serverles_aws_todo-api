@@ -19,7 +19,7 @@ export class TodoService {
         .promise();
 
       if (newItem.$response.error) {
-        throw new HttpError(400, { error: "Unable to add item" });
+        throw new HttpError(400, { type: "HttpError", error: "Unable to add item" });
       }
 
       return {
@@ -58,7 +58,7 @@ export class TodoService {
     try {
       const output = await docClient.scan({ TableName: tableName }).promise();
       if (output.$response.error) {
-        throw new HttpError(404, { error: "No items found" });
+        throw new HttpError(404, { type: "HttpError", error: "No items found" });
       }
       return {
         statusCode: 200,
@@ -81,7 +81,7 @@ export class TodoService {
   static validateBody(body: any) {
     for (const param in body as object) {
       if (param !== "label") {
-        throw new ValidationError({ error: "invalid body" });
+        throw new ValidationError({ type: "Validation Error", error: "invalid body" });
       }
     }
   }
