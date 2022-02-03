@@ -3,18 +3,14 @@ import { v4 } from "uuid";
 import { HttpError } from "../errors/HttpError";
 import { ValidationError } from "../errors/ValidateError";
 import { todoItem } from "./todo.dto";
-import * as yup from "yup";
 
 const docClient = new DynamoDB.DocumentClient();
 const tableName = "TodoTable";
 
-const inputType = yup.object().shape({
-  label: yup.string().required(),
-});
-
 export class TodoService {
-  static async addItem(item: todoItem) {
+  static async addItem(body: any) {
     try {
+      const item: todoItem = this.addValuesToBody(body);
       const newItem = await docClient
         .put({
           TableName: tableName,
@@ -32,9 +28,23 @@ export class TodoService {
         headers: { "Content-Type": "application/json" },
       };
     } catch (error) {
-      if (error instanceof HttpError || error instanceof ValidationError) {
+      if (error instanceof ValidationError) {
         return {
           statusCode: error.statusCode,
+          body: error.message,
+          headers: { "Content-Type": "application/json" },
+        };
+      }
+      if (error instanceof HttpError) {
+        return {
+          statusCode: error.statusCode,
+          body: error.message,
+          headers: { "Content-Type": "application/json" },
+        };
+      }
+      if (error instanceof SyntaxError) {
+        return {
+          statusCode: 404,
           body: error.message,
           headers: { "Content-Type": "application/json" },
         };
@@ -52,7 +62,7 @@ export class TodoService {
       }
       return {
         statusCode: 200,
-        body: JSON.stringify(output.Items?.reverse()),
+        body: JSON.stringify(output.Items /* ?.reverse() */),
         headers: { "Content-Type": "application/json" },
       };
     } catch (error) {
@@ -68,44 +78,26 @@ export class TodoService {
     }
   }
 
-  static async validateBody(body: any) {
-    try {
-      await inputType.validate(body);
-    } catch (error) {
-      if (error instanceof yup.ValidationError) {
-        throw new ValidationError({ error: "invalid request body" });
+  static validateBody(body: any) {
+    for (const param in body as object) {
+      if (param !== "label") {
+        throw new ValidationError({ error: "invalid body" });
       }
     }
   }
 
-  static addValuesToBody(body: any) {
+  static addValuesToBody(body: any): todoItem {
     try {
       const reqBody = JSON.parse(body);
       this.validateBody(reqBody);
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        return {
-          statusCode: error.statusCode,
-          body: error.message,
-          headers: { "Content-Type": "application/json" },
-        };
-      }
-
-      if (error instanceof SyntaxError) {
-        return {
-          statusCode: 400,
-          body: `Invalid request body: ${error.message}`,
-          headers: { "Content-Type": "application/json" },
-        };
-      }
-
-      throw error;
+      return {
+        ...reqBody,
+        id: v4(),
+        completed: false,
+        createdAt: new Date().getTime().toString(),
+      };
+    } catch (e) {
+      throw e;
     }
-    return {
-      ...body,
-      id: v4(),
-      completed: false,
-      createdAt: new Date().getTime().toString(),
-    };
   }
 }
