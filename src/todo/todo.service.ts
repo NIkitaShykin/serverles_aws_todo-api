@@ -3,8 +3,7 @@ import { v4 } from "uuid";
 import { HttpError } from "../errors/HttpError";
 import { ValidationError } from "../errors/ValidateError";
 import { todoItem } from "./todo.dto";
-import { handlingErrors } from "../errors/handlingErrors";
-import { error } from "console";
+import { handleErrors } from "../errors/handleErrors";
 
 const docClient = new DynamoDB.DocumentClient();
 const tableName = "TodoTable";
@@ -30,17 +29,19 @@ export class TodoService {
         headers: { "Content-Type": "application/json" },
       };
     } catch (error) {
-      if (error instanceof ValidationError) {
-        handlingErrors(error.statusCode, error.message);
-      }
-      if (error instanceof HttpError) {
-        handlingErrors(error.statusCode, error.message);
-      }
-      if (error instanceof SyntaxError) {
-        handlingErrors(400, error.message);
+      if (error instanceof ValidationError || error instanceof HttpError) {
+        handleErrors(error.statusCode, error.message);
       }
 
-      throw error;
+      if (error instanceof SyntaxError) {
+        handleErrors(400, error.message);
+      }
+
+      // good practise to log error here, in case that i don't use any logger, i will just use console log
+      // to log error, and check than, which of error i missed when coding
+      console.log(error);
+
+      return handleErrors(500, "Something went wrong");
     }
   }
 
@@ -57,10 +58,14 @@ export class TodoService {
       };
     } catch (error) {
       if (error instanceof HttpError) {
-        handlingErrors(error.statusCode, error.message);
+        handleErrors(error.statusCode, error.message);
       }
 
-      throw error;
+      // good practise to log error here, in case that i don't use any logger, i will just use console log
+      // to log error, and check than, which of error i missed when coding
+      console.log(error);
+
+      return handleErrors(500, "Something went wrong");
     }
   }
 
