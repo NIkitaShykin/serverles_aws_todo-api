@@ -3,6 +3,8 @@ import { v4 } from "uuid";
 import { HttpError } from "../errors/HttpError";
 import { ValidationError } from "../errors/ValidateError";
 import { todoItem } from "./todo.dto";
+import { handlingErrors } from "../errors/handlingErrors";
+import { error } from "console";
 
 const docClient = new DynamoDB.DocumentClient();
 const tableName = "TodoTable";
@@ -29,25 +31,13 @@ export class TodoService {
       };
     } catch (error) {
       if (error instanceof ValidationError) {
-        return {
-          statusCode: error.statusCode,
-          body: error.message,
-          headers: { "Content-Type": "application/json" },
-        };
+        handlingErrors(error.statusCode, error.message);
       }
       if (error instanceof HttpError) {
-        return {
-          statusCode: error.statusCode,
-          body: error.message,
-          headers: { "Content-Type": "application/json" },
-        };
+        handlingErrors(error.statusCode, error.message);
       }
       if (error instanceof SyntaxError) {
-        return {
-          statusCode: 404,
-          body: error.message,
-          headers: { "Content-Type": "application/json" },
-        };
+        handlingErrors(400, error.message);
       }
 
       throw error;
@@ -67,11 +57,7 @@ export class TodoService {
       };
     } catch (error) {
       if (error instanceof HttpError) {
-        return {
-          statusCode: error.statusCode,
-          body: error.message,
-          headers: { "Content-Type": "application/json" },
-        };
+        handlingErrors(error.statusCode, error.message);
       }
 
       throw error;
@@ -96,8 +82,8 @@ export class TodoService {
         completed: false,
         createdAt: new Date().getTime().toString(),
       };
-    } catch (e) {
-      throw e;
+    } catch (error) {
+      throw error;
     }
   }
 }
